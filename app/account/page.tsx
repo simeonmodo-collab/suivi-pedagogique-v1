@@ -1,0 +1,6 @@
+import AppShell from '@/components/AppShell'
+import {requireMember,roleLabels} from '@/lib/auth/require-member'
+import {changePassword} from './actions'
+
+type SP=Promise<{success?:string;error?:string}>
+export default async function AccountPage({searchParams}:{searchParams:SP}){const {profile,isManager}=await requireMember();const params=await searchParams;return <AppShell name={profile.full_name||'Collègue'} roleLabel={roleLabels[profile.role]} active="/account" isManager={isManager}><header className="page-header"><div><p className="eyebrow">Compte</p><h1>Mon compte</h1><p className="muted">{profile.full_name} · {profile.email}</p></div></header>{params.success&&<div className="notice success">{params.success}</div>}{params.error&&<div className="notice error">{params.error}</div>}<section className="card account-card"><p className="eyebrow">Sécurité</p><h2>Changer le mot de passe</h2><form action={changePassword} className="setup-form top-gap"><label className="setup-field"><span>Nouveau mot de passe</span><input name="password" type="password" minLength={8} required/></label><label className="setup-field"><span>Confirmer</span><input name="confirm" type="password" minLength={8} required/></label><button className="primary-button">Modifier le mot de passe</button></form></section></AppShell>}

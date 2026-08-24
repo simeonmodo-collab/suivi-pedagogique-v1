@@ -1,0 +1,11 @@
+import AppShell from '@/components/AppShell'
+import ProgressBar from '@/components/ProgressBar'
+import {requireMember,roleLabels} from '@/lib/auth/require-member'
+import {localDateISO} from '@/lib/date'
+import {getPerformanceData} from '@/lib/performance'
+
+export default async function TeachersPage(){
+  const {supabase,profile,isManager,canViewAll}=await requireMember();const today=localDateISO();const {data:year}=await supabase.from('school_years').select('id,name,starts_on,ends_on').eq('is_active',true).maybeSingle();const from=year&&today>=year.starts_on?year.starts_on:today;const to=year&&today>year.ends_on?year.ends_on:today;const {rows}=await getPerformanceData({supabase,profileId:profile.id,canViewAll,schoolYearId:year?.id,from,to})
+  const teacherIds=rows.map(r=>r.teacherId);const details=teacherIds.length?(await supabase.from('teachers').select('id,employee_code,specialty,phone').in('id',teacherIds)).data??[]:[];const dmap=new Map(details.map((d:any)=>[d.id,d]))
+  return <AppShell name={profile.full_name||'Collègue'} roleLabel={roleLabels[profile.role]} active="/teachers" isManager={isManager}><header className="page-header"><div><p className="eyebrow">Équipe</p><h1>Enseignants</h1><p className="muted">Fiches synthétiques pour l’année scolaire active.</p></div></header><section className="teacher-grid">{rows.map(r=>{const d:any=dmap.get(r.teacherId);return <article className="card teacher-card" key={r.teacherId}><div className="teacher-card-head"><div className="avatar-large">{r.teacherName.slice(0,1).toUpperCase()}</div><div><h2>{r.teacherName}</h2><p>{d?.specialty||'Informatique'}{d?.employee_code?` · ${d.employee_code}`:''}</p></div></div><div className="teacher-mini-stats"><span><strong>{(r.actualMinutes/60).toLocaleString('fr-FR',{maximumFractionDigits:1})} h</strong> effectuées</span><span><strong>{r.absences}</strong> absence(s)</span><span><strong>{r.lessonsCompleted}/{r.lessonsTotal}</strong> leçons</span></div><ProgressBar label="Couverture horaire" value={r.hourlyCoverage}/><ProgressBar label="Programme" value={r.programCoverage}/><ProgressBar label="Assiduité" value={r.attendance}/></article>})}{!rows.length&&<div className="card empty-state">Aucun enseignant ou aucune affectation disponible.</div>}</section></AppShell>
+}

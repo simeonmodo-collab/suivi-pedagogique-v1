@@ -1,0 +1,12 @@
+import AppShell from '@/components/AppShell'
+import PrintButton from '@/components/PrintButton'
+import {requireMember,roleLabels} from '@/lib/auth/require-member'
+import {localDateISO,formatDate} from '@/lib/date'
+import {getPerformanceData} from '@/lib/performance'
+
+export default async function ReportsPage(){
+  const {supabase,profile,isManager,canViewAll}=await requireMember();const today=localDateISO();const {data:year}=await supabase.from('school_years').select('id,name,starts_on,ends_on').eq('is_active',true).maybeSingle();const from=year&&today>=year.starts_on?year.starts_on:today;const to=year&&today>year.ends_on?year.ends_on:today;const {rows,department}=await getPerformanceData({supabase,profileId:profile.id,canViewAll,schoolYearId:year?.id,from,to})
+  return <AppShell name={profile.full_name||'Collègue'} roleLabel={roleLabels[profile.role]} active="/reports" isManager={isManager}><header className="page-header report-header"><div><p className="eyebrow">Édition</p><h1>Rapport de suivi pédagogique</h1><p className="muted">Période : {formatDate(from)} au {formatDate(to)}{year?.name?` · ${year.name}`:''}</p></div><div className="report-actions no-print"><a className="primary-button" href="/reports/export">Exporter CSV</a><PrintButton/></div></header>
+  {department&&<section className="report-summary"><div><span>Couverture horaire</span><strong>{department.hourlyCoverage}%</strong></div><div><span>Couverture programmes</span><strong>{department.programCoverage}%</strong></div><div><span>Assiduité</span><strong>{department.attendance}%</strong></div><div><span>Absences</span><strong>{department.absences}</strong></div></section>}
+  <section className="card report-card"><h2>Performance des enseignants</h2><table className="data-table report-table"><thead><tr><th>Enseignant</th><th>H. prévues</th><th>H. faites</th><th>Couverture horaire</th><th>Programme</th><th>Assiduité</th><th>Leçons prévues</th><th>Leçons faites</th><th>Absences</th></tr></thead><tbody>{rows.map(r=><tr key={r.teacherId}><td>{r.teacherName}</td><td>{(r.plannedMinutes/60).toLocaleString('fr-FR',{maximumFractionDigits:1})}</td><td>{(r.actualMinutes/60).toLocaleString('fr-FR',{maximumFractionDigits:1})}</td><td>{r.hourlyCoverage}%</td><td>{r.programCoverage}%</td><td>{r.attendance}%</td><td>{r.lessonsPlannedPeriod}</td><td>{r.lessonsDonePeriod}</td><td>{r.absences}</td></tr>)}</tbody></table><div className="report-signature"><p>Fait le {formatDate(today)}</p><p><strong>Animateur pédagogique / Responsable</strong></p></div></section></AppShell>
+}
