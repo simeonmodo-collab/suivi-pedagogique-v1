@@ -30,7 +30,6 @@ export async function createUser(fd: FormData) {
   go('error', `Compte non créé : ${error?.message ?? 'erreur inconnue'}`)
   return
 }
-
 const { error: profileError } = await supabase
   .from('profiles')
   .update({ full_name: fullName, role, active: true })
