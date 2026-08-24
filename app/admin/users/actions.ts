@@ -26,8 +26,15 @@ export async function createUser(fd: FormData) {
   if (!['admin','pedagogical_lead','teacher','management_viewer'].includes(role)) go('error', 'Rôle invalide.')
 
   const { data, error } = await admin!.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: fullName } })
-  if (error || !data.user) go('error', `Compte non créé : ${error?.message ?? 'erreur inconnue'}`)
-  const { error: profileError } = await supabase.from('profiles').update({ full_name: fullName, role, active: true }).eq('id', data.user.id)
+ if (error || !data.user) {
+  go('error', `Compte non créé : ${error?.message ?? 'erreur inconnue'}`)
+  return
+}
+
+const { error: profileError } = await supabase
+  .from('profiles')
+  .update({ full_name: fullName, role, active: true })
+  .eq('id', data.user.id)
   if (profileError) go('error', `Compte créé mais profil non configuré : ${profileError.message}`)
   revalidatePath('/admin/users')
   go('success', 'Utilisateur créé.')
